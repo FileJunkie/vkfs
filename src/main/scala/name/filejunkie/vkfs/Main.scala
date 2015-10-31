@@ -1,13 +1,20 @@
 package name.filejunkie.vkfs
 
 import name.filejunkie.vkfs.vk.VkApi
+import name.filejunkie.vkfs.fuse.FS
+import java.nio.file.Paths
 
 object Main {
   def main(args: Array[String]) = {
-    val userId = args(0)
+    val mountDir = args(0)
+    val userId = args(1)
 
-    val vkApi = new VkApi(userId)
-
-    println(vkApi.getAlbums)
+    val fs = new FS(userId)
+    try{
+      fs.mount(Paths.get(mountDir), true)
+    }
+    finally{
+      fs.umount()
+    }
   }  
 }
