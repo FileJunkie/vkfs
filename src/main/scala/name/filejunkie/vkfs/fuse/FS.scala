@@ -30,6 +30,10 @@ class FS(userId: String) extends FuseStubFS {
         stat.st_nlink.set(2)
       }
     }
+
+    stat.st_atim.tv_sec.set(System.currentTimeMillis() / 1000)
+    stat.st_ctim.tv_sec.set(System.currentTimeMillis() / 1000)
+    stat.st_mtim.tv_sec.set(System.currentTimeMillis() / 1000)
     0
   }
 
