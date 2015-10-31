@@ -37,7 +37,26 @@ class VkApi(userId: String) {
     }
   }
 
+  def getPhotoSize(photoId: String) = {
+    val urlStr = getPhotoUrlById(photoId)
+    val response: HttpResponse[String] = Http(urlStr).method("HEAD").asString
+
+    val headers = response.headers
+
+    headers.getOrElse("Content-Length", getPhoto(photoId).length.toString()).toLong
+  }
+
   def getPhoto(photoId: String) = {
+    val urlStr = getPhotoUrlById(photoId)
+
+    val url = new URL(urlStr)
+
+    val is = new BufferedInputStream(url.openStream())
+
+    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
+  }
+
+  def getPhotoUrlById(photoId: String) = {
     val response: HttpResponse[String] = Http(apiPrefix + "photos.getById").param("owner_id", userId).param("photos",userId + "_" + photoId).param("v","5.37").asString
 
     val responseString = response.body
@@ -46,12 +65,6 @@ class VkApi(userId: String) {
 
     val photo = photosJson.extract[List[Photo]].last
 
-    val urlStr = photo.photo_2560.getOrElse(photo.photo_1280.getOrElse(photo.photo_807.getOrElse(photo.photo_604.get)))
-
-    val url = new URL(urlStr)
-
-    val is = new BufferedInputStream(url.openStream())
-
-    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
+    photo.photo_2560.getOrElse(photo.photo_1280.getOrElse(photo.photo_807.getOrElse(photo.photo_604.get)))
   }
 }

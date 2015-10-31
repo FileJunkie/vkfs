@@ -22,8 +22,8 @@ class FS(userId: String) extends FuseStubFS {
 
         val photoId = p.substring(p.lastIndexOf("/") + 1, p.length() - 4)
 
-        val bytes = vkApi.getPhoto(photoId)
-        stat.st_size.set(bytes.length)
+        val size = vkApi.getPhotoSize(photoId)
+        stat.st_size.set(size)
       }
       case _ => {
         stat.st_mode.set(FileStat.S_IFDIR | FileStat.S_IRUSR | FileStat.S_IXUSR | FileStat.S_IRGRP | FileStat.S_IXGRP | FileStat.S_IROTH | FileStat.S_IXOTH )
