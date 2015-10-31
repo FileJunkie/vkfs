@@ -6,3 +6,4 @@ lazy val root = (project in file(".")).
   )
   
 libraryDependencies +=  "org.scalaj" %% "scalaj-http" % "1.1.6"
+libraryDependencies += "org.json4s" %% "json4s-jackson" % "3.2.11"
