@@ -19,13 +19,15 @@ class FS(userId: String) extends FuseStubFS {
   }
   
   override def readdir(path: String, buf: Pointer, filter: FuseFillDir, @off_t offset: Long, fi: FuseFileInfo) : Int = {
-    if(path != "/") -ErrorCodes.ENOENT()
+    if(path != "/")
+      -ErrorCodes.ENOENT()    
+    else{    
+      filter.apply(buf, ".", null, 0)
+      filter.apply(buf, "..", null, 0)
     
-    filter.apply(buf, ".", null, 0)
-    filter.apply(buf, "..", null, 0)
+      vkApi.getAlbums.foreach { album => filter.apply(buf, album.title, null, 0) }        
     
-    vkApi.getAlbums.foreach { album => filter.apply(buf, album.title, null, 0) }        
-    
-    0
+      0
+    }
   }
 }
