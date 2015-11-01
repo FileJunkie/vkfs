@@ -10,17 +10,18 @@ import ru.serce.jnrfuse.struct.FuseFileInfo
 import ru.serce.jnrfuse.ErrorCodes
 import name.filejunkie.vkfs.common.images.Photo
 import jnr.ffi.types.size_t
+import com.sun.security.auth.module.UnixSystem
 
 class FS(userId: String, token: Option[String]) extends FuseStubFS {
   val vkApi = new VkApi(userId, token)
+  val unixSystem = new UnixSystem
+  val uid = unixSystem.getUid
+  val gid = unixSystem.getGid
   
   override def getattr(path: String, stat: FileStat) : Int = {
-    val readPermissions = FileStat.S_IRUSR | FileStat.S_IRGRP | FileStat.S_IROTH
-    val writePermissions = FileStat.S_IWUSR | FileStat.S_IWGRP | FileStat.S_IWOTH
-
     path match {
       case p if p.endsWith(".jpg") =>{
-        stat.st_mode.set(FileStat.S_IFREG | readPermissions)
+        stat.st_mode.set(FileStat.S_IFREG | FileStat.ALL_READ)
         stat.st_nlink.set(1)
 
         val photoId = p.substring(p.lastIndexOf("/") + 1, p.length() - 4)
@@ -30,8 +31,8 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
       }
       case _ => {
         val permissions = token match {
-          case Some(s) => readPermissions | writePermissions
-          case _ => readPermissions
+          case Some(s) => FileStat.ALL_READ | FileStat.S_IWUSR
+          case _ => FileStat.ALL_READ
         }
 
         stat.st_mode.set(FileStat.S_IFDIR | permissions | FileStat.S_IXUSR | FileStat.S_IXGRP | FileStat.S_IXOTH )
@@ -42,6 +43,9 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
     stat.st_atim.tv_sec.set(System.currentTimeMillis() / 1000)
     stat.st_ctim.tv_sec.set(System.currentTimeMillis() / 1000)
     stat.st_mtim.tv_sec.set(System.currentTimeMillis() / 1000)
+    stat.st_uid.set(uid)
+    stat.st_gid.set(gid)
+
     0
   }
 
