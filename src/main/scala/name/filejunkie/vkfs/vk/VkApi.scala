@@ -7,11 +7,18 @@ import name.filejunkie.vkfs.common.images._
 import java.net.URL
 import java.io.BufferedInputStream
 import java.io.ByteArrayOutputStream
+import java.util.Scanner
 
-class VkApi(userId: String) {
-  val apiPrefix = "http://api.vk.com/method/"
+class VkApi(userId: String, token: Option[String]) {
+  val apiPrefix = "https://api.vk.com/method/"
+  val clientId = 5129436
   implicit val formats = DefaultFormats
   
+  def authorize = {
+    val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=5.37"
+    println("Please go to " + url + " and get your access token there")
+  }
+
   def getAlbums = {
     val response: HttpResponse[String] = Http(apiPrefix + "photos.getAlbums").param("owner_id",userId).param("v","5.37").asString
     val responseString = response.body
@@ -66,5 +73,20 @@ class VkApi(userId: String) {
     val photo = photosJson.extract[List[Photo]].last
 
     photo.photo_2560.getOrElse(photo.photo_1280.getOrElse(photo.photo_807.getOrElse(photo.photo_604.get)))
+  }
+
+  def renameAlbum(oldTitle: String, newTitle: String) = {
+    token match {
+      case Some(s) => {
+        getAlbums.find { album => album.title == oldTitle } match {
+          case Some(album) => {
+            val response: HttpResponse[String] = Http(apiPrefix + "photos.editAlbum").param("access_token", token.get).param("album_id", album.id.toString()).param("title", newTitle).param("v","5.37").asString
+            true
+          }
+          case _ => false
+        }
+      }
+      case _ => false
+    }
   }
 }

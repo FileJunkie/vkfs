@@ -11,13 +11,16 @@ import ru.serce.jnrfuse.ErrorCodes
 import name.filejunkie.vkfs.common.images.Photo
 import jnr.ffi.types.size_t
 
-class FS(userId: String) extends FuseStubFS {
-  val vkApi = new VkApi(userId)
+class FS(userId: String, token: Option[String]) extends FuseStubFS {
+  val vkApi = new VkApi(userId, token)
   
   override def getattr(path: String, stat: FileStat) : Int = {
+    val readPermissions = FileStat.S_IRUSR | FileStat.S_IRGRP | FileStat.S_IROTH
+    val writePermissions = FileStat.S_IWUSR | FileStat.S_IWGRP | FileStat.S_IWOTH
+
     path match {
       case p if p.endsWith(".jpg") =>{
-        stat.st_mode.set(FileStat.S_IFREG | FileStat.S_IRUSR | FileStat.S_IRGRP | FileStat.S_IROTH )
+        stat.st_mode.set(FileStat.S_IFREG | readPermissions)
         stat.st_nlink.set(1)
 
         val photoId = p.substring(p.lastIndexOf("/") + 1, p.length() - 4)
@@ -26,7 +29,12 @@ class FS(userId: String) extends FuseStubFS {
         stat.st_size.set(size)
       }
       case _ => {
-        stat.st_mode.set(FileStat.S_IFDIR | FileStat.S_IRUSR | FileStat.S_IXUSR | FileStat.S_IRGRP | FileStat.S_IXGRP | FileStat.S_IROTH | FileStat.S_IXOTH )
+        val permissions = token match {
+          case Some(s) => readPermissions | writePermissions
+          case _ => readPermissions
+        }
+
+        stat.st_mode.set(FileStat.S_IFDIR | permissions | FileStat.S_IXUSR | FileStat.S_IXGRP | FileStat.S_IXOTH )
         stat.st_nlink.set(2)
       }
     }
@@ -91,6 +99,23 @@ class FS(userId: String) extends FuseStubFS {
         }
       }
       case _ => -ErrorCodes.ENOENT()
+    }
+  }
+
+  override def rename(oldPath: String, newPath: String): Int = {
+    oldPath match {
+      case op if (op.count(_ == '/') == 1 && !op.endsWith(".jpg")) => {
+        val cleanOldPath = oldPath.substring(1)
+        val cleanNewPath = newPath.substring(1,newPath.lastIndexOf('/'))
+
+        val res = vkApi.renameAlbum(cleanOldPath, cleanNewPath)
+
+        res match {
+          case true => 0
+          case false => -1
+        }
+      }
+      case _ => -1
     }
   }
 }
