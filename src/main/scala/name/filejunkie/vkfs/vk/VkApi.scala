@@ -13,6 +13,7 @@ class VkApi(userId: String, token: Option[String]) {
   val apiPrefix = "https://api.vk.com/method/"
   val clientId = 5129436
   implicit val formats = DefaultFormats
+  val photos = scala.collection.mutable.Map[String,Array[Byte]]()
   
   def authorize = {
     val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=5.37"
@@ -54,13 +55,19 @@ class VkApi(userId: String, token: Option[String]) {
   }
 
   def getPhoto(photoId: String) = {
-    val urlStr = getPhotoUrlById(photoId)
+    photos.synchronized {
+      if(photos.size > 10) photos.clear()
 
-    val url = new URL(urlStr)
+      photos.getOrElseUpdate(photoId, {
+        val urlStr = getPhotoUrlById(photoId)
 
-    val is = new BufferedInputStream(url.openStream())
+        val url = new URL(urlStr)
 
-    Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
+        val is = new BufferedInputStream(url.openStream())
+
+        Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
+      })
+    }
   }
 
   def getPhotoUrlById(photoId: String) = {
