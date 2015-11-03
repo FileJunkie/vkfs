@@ -1,8 +1,9 @@
 package name.filejunkie.vkfs
 
-import name.filejunkie.vkfs.vk.VkApi
-import name.filejunkie.vkfs.fuse.FS
 import java.nio.file.Paths
+
+import name.filejunkie.vkfs.fuse.FS
+import name.filejunkie.vkfs.vk.VkApi
 
 object Main {
   def main(args: Array[String]) = {

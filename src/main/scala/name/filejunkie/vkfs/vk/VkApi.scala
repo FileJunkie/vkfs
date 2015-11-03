@@ -1,19 +1,28 @@
 package name.filejunkie.vkfs.vk
 
-import scalaj.http._
-import org.json4s._
-import org.json4s.jackson.JsonMethods._
-import name.filejunkie.vkfs.common.images._
-import java.net.URL
 import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
-import java.util.Scanner
+import java.net.URL
+
+import org.json4s.DefaultFormats
+import org.json4s.jackson.JsonMethods.parse
+import org.json4s.jvalue2extractable
+import org.json4s.jvalue2monadic
+import org.json4s.string2JsonInput
+
+import com.twitter.util.SynchronizedLruMap
+
+import name.filejunkie.vkfs.common.images.Album
+import name.filejunkie.vkfs.common.images.Photo
+import scalaj.http.Http
+import scalaj.http.HttpResponse
 
 class VkApi(userId: String, token: Option[String]) {
+  val FilesToStore = 10
+
   val apiPrefix = "https://api.vk.com/method/"
   val clientId = 5129436
   implicit val formats = DefaultFormats
-  val photos = scala.collection.mutable.Map[String,Array[Byte]]()
+  val photos = new SynchronizedLruMap[String,Array[Byte]](FilesToStore)
   
   def authorize = {
     val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=5.37"
@@ -55,19 +64,15 @@ class VkApi(userId: String, token: Option[String]) {
   }
 
   def getPhoto(photoId: String) = {
-    photos.synchronized {
-      if(photos.size > 10) photos.clear()
+    photos.getOrElseUpdate(photoId, {
+      val urlStr = getPhotoUrlById(photoId)
 
-      photos.getOrElseUpdate(photoId, {
-        val urlStr = getPhotoUrlById(photoId)
+      val url = new URL(urlStr)
 
-        val url = new URL(urlStr)
+      val is = new BufferedInputStream(url.openStream())
 
-        val is = new BufferedInputStream(url.openStream())
-
-        Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
-      })
-    }
+      Stream.continually(is.read).takeWhile(_ != -1).map(_.toByte).toArray
+    })
   }
 
   def getPhotoUrlById(photoId: String) = {

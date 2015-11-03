@@ -1,16 +1,17 @@
 package name.filejunkie.vkfs.fuse
 
+import com.sun.security.auth.module.UnixSystem
+
 import jnr.ffi.Pointer
 import jnr.ffi.types.off_t
+import jnr.ffi.types.size_t
+import name.filejunkie.vkfs.common.images.Photo
 import name.filejunkie.vkfs.vk.VkApi
+import ru.serce.jnrfuse.ErrorCodes
 import ru.serce.jnrfuse.FuseFillDir
 import ru.serce.jnrfuse.FuseStubFS
 import ru.serce.jnrfuse.struct.FileStat
 import ru.serce.jnrfuse.struct.FuseFileInfo
-import ru.serce.jnrfuse.ErrorCodes
-import name.filejunkie.vkfs.common.images.Photo
-import jnr.ffi.types.size_t
-import com.sun.security.auth.module.UnixSystem
 
 class FS(userId: String, token: Option[String]) extends FuseStubFS {
   val vkApi = new VkApi(userId, token)
