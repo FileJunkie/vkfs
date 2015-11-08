@@ -17,26 +17,28 @@ import scalaj.http.Http
 import scalaj.http.HttpResponse
 
 object VkApi {
+  val ApiVersion = "5.40"
+  
   def authorize = {
-    val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=5.37"
+    val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=" + ApiVersion
     println("Please go to " + url + " and get your access token there")
   }
 }
 
 class VkApi(userId: String, token: Option[String]) {
-  val FilesToStore = 10
+  val FilesToStore = 10  
 
   val apiPrefix = "https://api.vk.com/method/"
   val clientId = 5129436
   implicit val formats = DefaultFormats
   val photos = new SynchronizedLruMap[String,Array[Byte]](FilesToStore)
 
-  def getAlbums = {
-    val response: HttpResponse[String] = Http(apiPrefix + "photos.getAlbums").param("owner_id",userId).param("v","5.37").asString
+  def getAlbums : List[Album] = {
+    val response = callMethod("photos.getAlbums", ("owner_id", userId))
     val responseString = response.body
     val json = parse(responseString)
     val albumsJson = json \ "response" \ "items"
-    
+
     albumsJson.extract[List[Album]]
   }
 
@@ -45,7 +47,7 @@ class VkApi(userId: String, token: Option[String]) {
       case Some(album) => {
         val albumId = album.id.toString()
 
-        val response: HttpResponse[String] = Http(apiPrefix + "photos.get").param("owner_id",userId).param("album_id",albumId).param("v","5.37").asString
+        val response = callMethod("photos.get", ("owner_id", userId), ("album_id",albumId))
         val responseString = response.body
         val json = parse(responseString)
         val photosJson = json \ "response" \ "items"
@@ -56,7 +58,7 @@ class VkApi(userId: String, token: Option[String]) {
     }
   }
 
-  def getPhotoSize(photoId: String) = {
+  def getPhotoSize(photoId: String) : Long = {
     val urlStr = getPhotoUrlById(photoId)
     val response: HttpResponse[String] = Http(urlStr).method("HEAD").asString
 
@@ -65,7 +67,7 @@ class VkApi(userId: String, token: Option[String]) {
     headers.getOrElse("Content-Length", getPhoto(photoId).length.toString()).toLong
   }
 
-  def getPhoto(photoId: String) = {
+  def getPhoto(photoId: String) : Array[Byte] = {
     photos.getOrElseUpdate(photoId, {
       val urlStr = getPhotoUrlById(photoId)
 
@@ -77,8 +79,8 @@ class VkApi(userId: String, token: Option[String]) {
     })
   }
 
-  def getPhotoUrlById(photoId: String) = {
-    val response: HttpResponse[String] = Http(apiPrefix + "photos.getById").param("owner_id", userId).param("photos",userId + "_" + photoId).param("v","5.37").asString
+  def getPhotoUrlById(photoId: String) : String = {
+    val response = callMethod("photos.getById", ("owner_id", userId), ("photos",userId + "_" + photoId))
 
     val responseString = response.body
     val json = parse(responseString)
@@ -89,12 +91,12 @@ class VkApi(userId: String, token: Option[String]) {
     photo.photo_2560.getOrElse(photo.photo_1280.getOrElse(photo.photo_807.getOrElse(photo.photo_604.get)))
   }
 
-  def renameAlbum(oldTitle: String, newTitle: String) = {
+  def renameAlbum(oldTitle: String, newTitle: String) : Boolean = {
     token match {
       case Some(s) => {
         getAlbums.find { album => album.title == oldTitle } match {
           case Some(album) => {
-            val response: HttpResponse[String] = Http(apiPrefix + "photos.editAlbum").param("access_token", token.get).param("album_id", album.id.toString()).param("title", newTitle).param("v","5.37").asString
+            callMethod("photos.editAlbum", ("album_id", album.id.toString()), ("title", newTitle))
             true
           }
           case _ => false
@@ -102,5 +104,14 @@ class VkApi(userId: String, token: Option[String]) {
       }
       case _ => false
     }
+  }
+
+  private def callMethod(method: String, params: (String, String)*) : HttpResponse[String] = {
+    val allParams : List[(String, String)] = ("v", VkApi.ApiVersion) :: (token match {
+      case Some(x: String) => ("access_token", x) :: params.toList
+      case None => params.toList
+    })
+
+    allParams.foldLeft(Http(apiPrefix + method))((a, b) => a.param(b._1, b._2)).asString
   }
 }

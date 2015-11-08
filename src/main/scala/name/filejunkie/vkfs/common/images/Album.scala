@@ -8,6 +8,6 @@ case class Album(id: Long,
   created: Long,
   updated: Long,
   size: Long,
-  thumb_is_last: Short,
+  thumb_is_last: Option[Short],
   privacy_view: List[String],
   privacy_comment: List[String])
