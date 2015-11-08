@@ -9,14 +9,13 @@ object Main {
   def main(args: Array[String]) = {
     args(0) match {
       case "authorize" => {
-        val vkApi = new VkApi(args(1), None)
-        vkApi.authorize
+        VkApi.authorize
       }
-      case _ => {
-        val mountDir = args(0)
-        val userId = args(1)
+      case "mount" => {
+        val mountDir = args(1)
+        val userId = args(2)
         val token = args.size match {
-          case s if s > 2 => Some(args(2))
+          case s if s > 3 => Some(args(3))
           case _ => None
         }
 
@@ -28,6 +27,7 @@ object Main {
           fs.umount()
         }
       }
+      case _ => println("Unknown command")
     }
   }  
 }
