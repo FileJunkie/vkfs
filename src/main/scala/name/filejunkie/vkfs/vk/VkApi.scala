@@ -16,19 +16,22 @@ import name.filejunkie.vkfs.common.images.Photo
 import scalaj.http.Http
 import scalaj.http.HttpResponse
 
-class VkApi(userId: String, token: Option[String]) {
-  val FilesToStore = 10
+object VkApi {
   val ApiVersion = "5.40"
+  
+  def authorize = {
+    val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=" + ApiVersion
+    println("Please go to " + url + " and get your access token there")
+  }
+}
+
+class VkApi(userId: String, token: Option[String]) {
+  val FilesToStore = 10  
 
   val apiPrefix = "https://api.vk.com/method/"
   val clientId = 5129436
   implicit val formats = DefaultFormats
   val photos = new SynchronizedLruMap[String,Array[Byte]](FilesToStore)
-
-  def authorize : Unit = {
-    val url = "https://oauth.vk.com/authorize?client_id=5129436&display=page&redirect_uri=https://oauth.vk.com/blank.html&scope=photos&response_type=token&v=5.37"
-    println("Please go to " + url + " and get your access token there")
-  }
 
   def getAlbums : List[Album] = {
     val response = callMethod("photos.getAlbums", ("owner_id", userId))
@@ -104,7 +107,7 @@ class VkApi(userId: String, token: Option[String]) {
   }
 
   private def callMethod(method: String, params: (String, String)*) : HttpResponse[String] = {
-    val allParams : List[(String, String)] = ("v", ApiVersion) :: (token match {
+    val allParams : List[(String, String)] = ("v", VkApi.ApiVersion) :: (token match {
       case Some(x: String) => ("access_token", x) :: params.toList
       case None => params.toList
     })
