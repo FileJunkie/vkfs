@@ -38,7 +38,7 @@ class VkApi(userId: String, token: Option[String]) {
     val responseString = response.body
     val json = parse(responseString)
     val albumsJson = json \ "response" \ "items"
-    
+
     albumsJson.extract[List[Album]]
   }
 
