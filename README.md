@@ -5,8 +5,8 @@ Currently it only supports downloading the images and renaming the galleries.
 
 Usage:
 
-`sbt 'run mountpoint userid'` to mount the galleries of user with userid=`userid` to the folder `mountpoint` in read-only mode.
+`sbt 'run mount mountpoint userid'` to mount the galleries of user with userid=`userid` to the folder `mountpoint` in read-only mode.
 
 `sbt 'run authorize'` to get an url to get you access token.
 
-`sbt 'run mountpoint userid auth_token'` to mount in r/w mode with gallery renaming support.
+`sbt 'run mount mountpoint userid auth_token'` to mount in r/w mode with gallery renaming support.
