@@ -18,6 +18,7 @@ import scalaj.http.HttpResponse
 
 class VkApi(userId: String, token: Option[String]) {
   val FilesToStore = 10
+  val ApiVersion = "5.40"
 
   val apiPrefix = "https://api.vk.com/method/"
   val clientId = 5129436
@@ -103,7 +104,7 @@ class VkApi(userId: String, token: Option[String]) {
   }
 
   private def callMethod(method: String, params: (String, String)*) : HttpResponse[String] = {
-    val allParams : List[(String, String)] = ("v", "5.37") :: (token match {
+    val allParams : List[(String, String)] = ("v", ApiVersion) :: (token match {
       case Some(x: String) => ("access_token", x) :: params.toList
       case None => params.toList
     })
