@@ -110,7 +110,10 @@ class VkApi(userId: String, token: Option[String]) {
       case Some(s) => {
         getAlbums.find { album => album.title == oldTitle } match {
           case Some(album) => {
-            callMethod("photos.editAlbum", ("album_id", album.id.toString()), ("title", newTitle))
+            albums synchronized {
+              callMethod("photos.editAlbum", ("album_id", album.id.toString()), ("title", newTitle))
+              albums.clear()
+            }
             true
           }
           case _ => false

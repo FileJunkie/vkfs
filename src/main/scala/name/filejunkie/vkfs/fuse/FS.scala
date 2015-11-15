@@ -20,6 +20,16 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
   val gid = unixSystem.getGid
   
   override def getattr(path: String, stat: FileStat) : Int = {
+    def setCorrectDirStat() = {
+      val permissions = token match {
+        case Some(s) => FileStat.ALL_READ | FileStat.S_IWUSR
+        case _ => FileStat.ALL_READ
+      }
+
+      stat.st_mode.set(FileStat.S_IFDIR | permissions | FileStat.S_IXUSR | FileStat.S_IXGRP | FileStat.S_IXOTH )
+      stat.st_nlink.set(2)
+    }
+
     path match {
       case p if p.endsWith(".jpg") =>{
         stat.st_mode.set(FileStat.S_IFREG | FileStat.ALL_READ)
@@ -30,14 +40,16 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
         val size = vkApi.getPhotoSize(photoId)
         stat.st_size.set(size)
       }
+      case "/" => {
+        setCorrectDirStat()
+      }
       case _ => {
-        val permissions = token match {
-          case Some(s) => FileStat.ALL_READ | FileStat.S_IWUSR
-          case _ => FileStat.ALL_READ
-        }
+        val realDirname = path.substring(1)
 
-        stat.st_mode.set(FileStat.S_IFDIR | permissions | FileStat.S_IXUSR | FileStat.S_IXGRP | FileStat.S_IXOTH )
-        stat.st_nlink.set(2)
+        if(!vkApi.getAlbums.exists { album => album.title == realDirname }){
+          return -ErrorCodes.ENOENT
+        }
+        setCorrectDirStat()
       }
     }
 
@@ -70,7 +82,7 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
 
             0
           }
-          case _ => -ErrorCodes.ENOENT()
+          case _ => -ErrorCodes.ENOENT
         }
       }
     }
@@ -79,7 +91,7 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
   override def open(path: String, fi: FuseFileInfo) = {
     path match {
       case p if (p.contains("/") && p.endsWith(".jpg")) => 0
-      case _ => -ErrorCodes.ENOENT()
+      case _ => -ErrorCodes.ENOENT
     }
   }
 
@@ -103,7 +115,7 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
           case _ => 0
         }
       }
-      case _ => -ErrorCodes.ENOENT()
+      case _ => -ErrorCodes.ENOENT
     }
   }
 
