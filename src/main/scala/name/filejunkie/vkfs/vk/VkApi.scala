@@ -123,6 +123,23 @@ class VkApi(userId: String, token: Option[String]) {
     }
   }
 
+  def createAlbum(name: String) : Boolean = {
+    if(albums.exists { album => album.title == name }){
+      return false
+    }
+
+    token match {
+      case Some(s) => {
+        albums synchronized {
+          callMethod("photos.createAlbum", ("title", name), ("privacy_view", "only_me"), ("privacy_comment", "only_me"))
+          albums.clear()
+        }
+        true
+      }
+      case _ => false
+    }
+  }
+
   private def callMethod(method: String, params: (String, String)*) : HttpResponse[String] = {
     val allParams : List[(String, String)] = ("v", VkApi.ApiVersion) :: (token match {
       case Some(x: String) => ("access_token", x) :: params.toList

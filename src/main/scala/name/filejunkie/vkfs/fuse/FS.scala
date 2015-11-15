@@ -135,4 +135,13 @@ class FS(userId: String, token: Option[String]) extends FuseStubFS {
       case _ => -1
     }
   }
+
+  override def mkdir(name: String, mode: Long): Int = {
+    if(vkApi.createAlbum(name.substring(1))){
+      0
+    }
+    else{
+      -ErrorCodes.EACCES
+    }
+  }
 }
