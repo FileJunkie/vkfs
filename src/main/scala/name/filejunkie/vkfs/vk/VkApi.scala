@@ -9,6 +9,8 @@ import org.json4s.jvalue2extractable
 import org.json4s.jvalue2monadic
 import org.json4s.string2JsonInput
 
+import com.twitter.conversions.time.intToTimeableNumber
+import com.twitter.util.ScheduledThreadPoolTimer
 import com.twitter.util.SynchronizedLruMap
 
 import name.filejunkie.vkfs.common.images.Album
@@ -32,14 +34,26 @@ class VkApi(userId: String, token: Option[String]) {
   val clientId = 5129436
   implicit val formats = DefaultFormats
   val photos = new SynchronizedLruMap[String,Array[Byte]](FilesToStore)
+  val albums = scala.collection.mutable.ListBuffer[Album]()
+
+  new ScheduledThreadPoolTimer().schedule(0.second, 10.seconds)({
+    albums synchronized {
+      albums.clear()
+    }
+  })
 
   def getAlbums : List[Album] = {
-    val response = callMethod("photos.getAlbums", ("owner_id", userId))
-    val responseString = response.body
-    val json = parse(responseString)
-    val albumsJson = json \ "response" \ "items"
+    albums synchronized {
+      if(albums.isEmpty){
+        val response = callMethod("photos.getAlbums", ("owner_id", userId))
+        val responseString = response.body
+        val json = parse(responseString)
+        val albumsJson = json \ "response" \ "items"
 
-    albumsJson.extract[List[Album]]
+        albums ++= albumsJson.extract[List[Album]]
+      }
+      albums.toList
+    }
   }
 
   def getPhotos(albumTitle: String) : Option[List[Photo]] = {
