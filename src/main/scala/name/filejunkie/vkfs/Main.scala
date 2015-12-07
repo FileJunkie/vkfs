@@ -14,10 +14,7 @@ object Main {
       case "mount" => {
         val mountDir = args(1)
         val userId = args(2)
-        val token = args.size match {
-          case s if s > 3 => Some(args(3))
-          case _ => None
-        }
+        val token = args.lift(3)
 
         val fs = new FS(userId, token)
         try{
